@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User
+    participant App as SplashKit application
+    participant Controller as SceneController
+    participant Scene
+    participant Name as NameEntity
+    participant Part as RectangleEntity
+
+    User->>App: Click canvas position
+    App->>Controller: SelectNameAt(position)
+    Controller->>Scene: FindTopmostNameAt(position)
+    Scene->>Name: Contains(position)
+    Name->>Part: Contains(position)
+    Part-->>Name: hit result
+    Name-->>Scene: hit result
+    Scene-->>Controller: NameEntity or none
+    Controller-->>App: selection result
+    App-->>User: Show selection state
+
+    User->>App: Press move/resize/recolor key
+    App->>Controller: Apply action to selected name
+    Controller->>Name: MoveBy / ResizeBy / ChangeColor
+    Name->>Part: Apply operation to child shapes
+    Part-->>Name: Updated part state
+    App->>Scene: Draw(IDrawContext)
+    Scene->>Name: Draw(IDrawContext)
+    Name-->>App: Render composite through context

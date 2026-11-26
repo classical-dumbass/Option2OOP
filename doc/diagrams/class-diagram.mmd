@@ -1,0 +1,93 @@
+classDiagram
+    class DrawableEntity {
+        <<abstract>>
+        -Vector2 _center
+        -Color _color
+        -float _rotationDegrees
+        -float _scale
+        +Center Vector2
+        +Color Color
+        +MoveBy(Vector2 offset)
+        +ResizeBy(float factor)
+        +ChangeColor(Color color)
+        +RotateBy(float degrees)
+        +Draw(IDrawContext context)* void
+        +Contains(Vector2 point)* bool
+    }
+
+    class LineEntity {
+        -Vector2 _start
+        -Vector2 _end
+        +Draw(IDrawContext context) void
+        +Contains(Vector2 point) bool
+    }
+    class RectangleEntity {
+        -float _width
+        -float _height
+        +Draw(IDrawContext context) void
+        +Contains(Vector2 point) bool
+    }
+    class CircleEntity {
+        -float _radius
+        +Draw(IDrawContext context) void
+        +Contains(Vector2 point) bool
+    }
+    class CompositeEntity {
+        <<abstract>>
+        -List~DrawableEntity~ _children
+        +Children IReadOnlyList~DrawableEntity~
+        +AddChild(DrawableEntity child) void
+        +Draw(IDrawContext context) void
+        +Contains(Vector2 point) bool
+    }
+    class HouseEntity
+    class NameEntity {
+        -string _text
+        +Text string
+    }
+    class Scene {
+        -List~DrawableEntity~ _entities
+        +Entities IReadOnlyList~DrawableEntity~
+        +Add(DrawableEntity entity) void
+        +FindTopmostAt(Vector2 point) DrawableEntity
+        +FindTopmostNameAt(Vector2 point) NameEntity
+        +Draw(IDrawContext context) void
+        +RotateAll(float degrees) void
+    }
+    class SceneController {
+        -Scene _scene
+        -NameEntity _selectedName
+        +AddRandomHouses(float width, float height) void
+        +AddName(NameEntity name) void
+        +SelectNameAt(Vector2 point) bool
+        +MoveSelected(Vector2 offset) bool
+        +ResizeSelected(float factor) bool
+        +RecolorSelected() bool
+        +RotateAll() float
+        +ClearNameSelection() void
+    }
+    class NameGlyphFactory {
+        +Validate(string text) string
+        +Create(string text, Vector2 center, Color color) NameEntity
+    }
+    class IDrawContext {
+        <<interface>>
+        +DrawLine(...)
+        +DrawRectangle(...)
+        +DrawCircle(...)
+    }
+    class SplashKitDrawContext
+
+    DrawableEntity <|-- LineEntity
+    DrawableEntity <|-- RectangleEntity
+    DrawableEntity <|-- CircleEntity
+    DrawableEntity <|-- CompositeEntity
+    CompositeEntity <|-- HouseEntity
+    CompositeEntity <|-- NameEntity
+    CompositeEntity *-- "1..*" DrawableEntity : owns parts
+    Scene o-- "0..*" DrawableEntity : stores
+    SceneController --> Scene : coordinates
+    NameGlyphFactory ..> NameEntity : creates
+    NameGlyphFactory ..> LineEntity : creates glyph strokes
+    DrawableEntity ..> IDrawContext : draws through
+    SplashKitDrawContext ..|> IDrawContext
