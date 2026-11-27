@@ -23,11 +23,38 @@ public sealed class LineEntity : DrawableEntity
         _thickness = thickness;
     }
 
-    public Vector2 Start => _start;
+    public Vector2 Start
+    {
+        get
+        {
+            return _start;
+        }
+    }
 
-    public Vector2 End => _end;
+    public Vector2 End
+    {
+        get
+        {
+            return _end;
+        }
+    }
 
-    public float Thickness => _thickness;
+    public float Thickness
+    {
+        get
+        {
+            return _thickness;
+        }
+        set
+        {
+            if (!float.IsFinite(value) || value <= 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Thickness must be positive and finite.");
+            }
+
+            _thickness = value;
+        }
+    }
 
     public override void Draw(IDrawContext context)
     {

@@ -14,7 +14,13 @@ public abstract class CompositeEntity : DrawableEntity
         _childrenView = _children.AsReadOnly();
     }
 
-    public IReadOnlyList<DrawableEntity> Children => _childrenView;
+    public IReadOnlyList<DrawableEntity> Children
+    {
+        get
+        {
+            return _childrenView;
+        }
+    }
 
     protected void AddChild(DrawableEntity child)
     {
@@ -32,8 +38,18 @@ public abstract class CompositeEntity : DrawableEntity
         }
     }
 
-    public override bool Contains(Vector2 point) =>
-        _children.Any(child => child.Contains(point));
+    public override bool Contains(Vector2 point)
+    {
+        foreach (var child in _children)
+        {
+            if (child.Contains(point))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     protected override void OnMoved(Vector2 offset)
     {

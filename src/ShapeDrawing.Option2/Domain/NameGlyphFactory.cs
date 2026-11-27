@@ -91,8 +91,22 @@ public static class NameGlyphFactory
         }
 
         var normalizedText = text.Trim().ToUpperInvariant();
-        if (normalizedText.Any(character => !Patterns.ContainsKey(character))
-            || normalizedText.All(character => character == ' '))
+        var containsUnsupportedCharacter = false;
+        var containsOnlySpaces = true;
+        foreach (var character in normalizedText)
+        {
+            if (!Patterns.ContainsKey(character))
+            {
+                containsUnsupportedCharacter = true;
+            }
+
+            if (character != ' ')
+            {
+                containsOnlySpaces = false;
+            }
+        }
+
+        if (containsUnsupportedCharacter || containsOnlySpaces)
         {
             throw new ArgumentException(
                 "Name must contain letters A-Z; spaces and hyphens are also supported.",

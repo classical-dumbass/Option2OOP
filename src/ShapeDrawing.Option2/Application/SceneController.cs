@@ -18,7 +18,13 @@ public sealed class SceneController
         _random = random;
     }
 
-    public NameEntity? SelectedName => _selectedName;
+    public NameEntity? SelectedName
+    {
+        get
+        {
+            return _selectedName;
+        }
+    }
 
     public void AddRandomHouses(float canvasWidth, float canvasHeight)
     {
@@ -35,6 +41,7 @@ public sealed class SceneController
         }
 
         var count = _random.Next(3, 11);
+        _scene.BeginBatch();
         for (var index = 0; index < count; index++)
         {
             var center = new Vector2(
@@ -42,6 +49,7 @@ public sealed class SceneController
                 NextFloat(verticalMargin, canvasHeight - verticalMargin));
             _scene.Add(new HouseEntity(center, NextColor()));
         }
+        _scene.EndBatch();
     }
 
     public void AddName(NameEntity name)
@@ -68,8 +76,7 @@ public sealed class SceneController
             return false;
         }
 
-        _selectedName.MoveBy(offset);
-        return true;
+        return _scene.MoveEntity(_selectedName, offset);
     }
 
     public bool ResizeSelected(float factor)
@@ -79,8 +86,7 @@ public sealed class SceneController
             return false;
         }
 
-        _selectedName.ResizeBy(factor);
-        return true;
+        return _scene.ResizeEntity(_selectedName, factor);
     }
 
     public bool RecolorSelected()
@@ -90,8 +96,7 @@ public sealed class SceneController
             return false;
         }
 
-        _selectedName.ChangeColor(NextColor());
-        return true;
+        return _scene.RecolorEntity(_selectedName, NextColor());
     }
 
     public float RotateAll()
@@ -101,9 +106,16 @@ public sealed class SceneController
         return degrees;
     }
 
-    private float NextFloat(float minimum, float maximum) =>
-        minimum + ((float)_random.NextDouble() * (maximum - minimum));
+    private float NextFloat(float minimum, float maximum)
+    {
+        return minimum + ((float)_random.NextDouble() * (maximum - minimum));
+    }
 
-    private Color NextColor() =>
-        Color.FromArgb(_random.Next(50, 256), _random.Next(50, 256), _random.Next(50, 256));
+    private Color NextColor()
+    {
+        return Color.FromArgb(
+            _random.Next(50, 256),
+            _random.Next(50, 256),
+            _random.Next(50, 256));
+    }
 }

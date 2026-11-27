@@ -9,6 +9,15 @@ namespace ShapeDrawing.Option2;
 
 internal static class Program
 {
+    private const float RectangleWidth = 80f;
+    private const float RectangleHeight = 60f;
+    private const float CircleRadius = 32f;
+    private const float LineOffset = 35f;
+    private const float LineCrossOffset = 25f;
+    private const float MoveDistance = 10f;
+    private const float ResizeUpFactor = 1.1f;
+    private const float ResizeDownFactor = 0.9f;
+
     private enum ShapeKind
     {
         Rectangle,
@@ -18,13 +27,22 @@ internal static class Program
 
     private static void Main()
     {
-        Console.Write("Enter your first name (letters A-Z, spaces, and hyphens): ");
-        var firstName = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(firstName))
+        string firstName;
+        while (true)
         {
-            throw new InvalidOperationException("A first name is required to run the drawing app.");
+            Console.Write("Enter your first name (letters A-Z, spaces, and hyphens): ");
+            var input = Console.ReadLine();
+
+            try
+            {
+                firstName = NameGlyphFactory.Validate(input ?? string.Empty);
+                break;
+            }
+            catch (ArgumentException exception)
+            {
+                Console.WriteLine(exception.Message);
+            }
         }
-        firstName = NameGlyphFactory.Validate(firstName);
 
         var random = new Random();
         var scene = new Scene();
@@ -54,8 +72,8 @@ internal static class Program
                     ref selectedEntity);
 
                 SplashKit.ClearScreen(SplashKit.RGBColor(245, 245, 245));
-                scene.Draw(drawContext);
                 DrawSelection(controller.SelectedName, drawContext);
+                scene.Draw(drawContext);
                 DrawInstructions(shapeKind, selectedEntity, controller.SelectedName, firstName);
                 SplashKit.RefreshScreen();
             }
@@ -75,6 +93,26 @@ internal static class Program
         ref ShapeKind shapeKind,
         ref DrawableEntity? selectedEntity)
     {
+        var controlDown = SplashKit.KeyDown(KeyCode.LeftCtrlKey)
+            || SplashKit.KeyDown(KeyCode.RightCtrlKey);
+
+        if (controlDown && SplashKit.KeyTyped(KeyCode.ZKey))
+        {
+            scene.Undo();
+            selectedEntity = null;
+            controller.ClearNameSelection();
+        }
+
+        if (controlDown
+            && (SplashKit.KeyTyped(KeyCode.YKey)
+                || (SplashKit.KeyDown(KeyCode.LeftShiftKey)
+                    && SplashKit.KeyTyped(KeyCode.ZKey))))
+        {
+            scene.Redo();
+            selectedEntity = null;
+            controller.ClearNameSelection();
+        }
+
         if (SplashKit.KeyTyped(KeyCode.RKey))
         {
             shapeKind = ShapeKind.Rectangle;
@@ -133,28 +171,28 @@ internal static class Program
 
         if (SplashKit.KeyTyped(KeyCode.UpKey))
         {
-            controller.MoveSelected(new Vector2(0f, -10f));
+            controller.MoveSelected(new Vector2(0f, -MoveDistance));
         }
         else if (SplashKit.KeyTyped(KeyCode.DownKey))
         {
-            controller.MoveSelected(new Vector2(0f, 10f));
+            controller.MoveSelected(new Vector2(0f, MoveDistance));
         }
         else if (SplashKit.KeyTyped(KeyCode.LeftKey))
         {
-            controller.MoveSelected(new Vector2(-10f, 0f));
+            controller.MoveSelected(new Vector2(-MoveDistance, 0f));
         }
         else if (SplashKit.KeyTyped(KeyCode.RightKey))
         {
-            controller.MoveSelected(new Vector2(10f, 0f));
+            controller.MoveSelected(new Vector2(MoveDistance, 0f));
         }
 
         if (SplashKit.KeyTyped(KeyCode.PageUpKey))
         {
-            controller.ResizeSelected(1.1f);
+            controller.ResizeSelected(ResizeUpFactor);
         }
         else if (SplashKit.KeyTyped(KeyCode.PageDownKey))
         {
-            controller.ResizeSelected(0.9f);
+            controller.ResizeSelected(ResizeDownFactor);
         }
 
         if (SplashKit.KeyTyped(KeyCode.SpaceKey))
@@ -163,26 +201,36 @@ internal static class Program
         }
     }
 
-    private static DrawableEntity CreateShape(ShapeKind kind, Vector2 center, ModelColor color) =>
-        kind switch
+    private static DrawableEntity CreateShape(ShapeKind kind, Vector2 center, ModelColor color)
+    {
+        switch (kind)
         {
-            ShapeKind.Rectangle => new RectangleEntity(center, 80f, 60f, color),
-            ShapeKind.Circle => new CircleEntity(center, 32f, color),
-            ShapeKind.Line => new LineEntity(
-                center + new Vector2(-35f, 25f),
-                center + new Vector2(35f, -25f),
-                color),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
+            case ShapeKind.Rectangle:
+                return new RectangleEntity(center, RectangleWidth, RectangleHeight, color);
+            case ShapeKind.Circle:
+                return new CircleEntity(center, CircleRadius, color);
+            case ShapeKind.Line:
+                return new LineEntity(
+                    center + new Vector2(-LineOffset, LineCrossOffset),
+                    center + new Vector2(LineOffset, -LineCrossOffset),
+                    color);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+    }
 
-    private static Vector2 CurrentMousePosition() =>
-        new(SplashKit.MouseX(), SplashKit.MouseY());
+    private static Vector2 CurrentMousePosition()
+    {
+        return new Vector2(SplashKit.MouseX(), SplashKit.MouseY());
+    }
 
-    private static ModelColor NextColor(Random random) =>
-        ModelColor.FromArgb(
+    private static ModelColor NextColor(Random random)
+    {
+        return ModelColor.FromArgb(
             random.Next(50, 256),
             random.Next(50, 256),
             random.Next(50, 256));
+    }
 
     private static void DrawSelection(NameEntity? selectedName, SplashKitDrawContext context)
     {
@@ -191,14 +239,43 @@ internal static class Program
             return;
         }
 
-        foreach (var part in selectedName.Children.OfType<LineEntity>())
+        var lineParts = selectedName.Children.OfType<LineEntity>().ToArray();
+        if (lineParts.Length == 0)
         {
-            context.DrawLine(
-                part.Start,
-                part.End,
-                ModelColor.Gold,
-                part.Thickness + 3f);
+            return;
         }
+
+        var left = float.PositiveInfinity;
+        var right = float.NegativeInfinity;
+        var top = float.PositiveInfinity;
+        var bottom = float.NegativeInfinity;
+
+        foreach (var part in lineParts)
+        {
+            var partLeft = MathF.Min(part.Start.X, part.End.X);
+            var partRight = MathF.Max(part.Start.X, part.End.X);
+            var partTop = MathF.Min(part.Start.Y, part.End.Y);
+            var partBottom = MathF.Max(part.Start.Y, part.End.Y);
+
+            left = MathF.Min(left, partLeft);
+            right = MathF.Max(right, partRight);
+            top = MathF.Min(top, partTop);
+            bottom = MathF.Max(bottom, partBottom);
+        }
+
+        left -= 6f;
+        right += 6f;
+        top -= 6f;
+        bottom += 6f;
+        var topLeft = new Vector2(left, top);
+        var topRight = new Vector2(right, top);
+        var bottomRight = new Vector2(right, bottom);
+        var bottomLeft = new Vector2(left, bottom);
+
+        context.DrawLine(topLeft, topRight, ModelColor.Gold, 3f);
+        context.DrawLine(topRight, bottomRight, ModelColor.Gold, 3f);
+        context.DrawLine(bottomRight, bottomLeft, ModelColor.Gold, 3f);
+        context.DrawLine(bottomLeft, topLeft, ModelColor.Gold, 3f);
     }
 
     private static void DrawInstructions(
@@ -218,6 +295,11 @@ internal static class Program
             textColor,
             12d,
             30d);
+        SplashKit.DrawText(
+            "Ctrl+Z: undo | Ctrl+Y or Ctrl+Shift+Z: redo",
+            textColor,
+            12d,
+            70d);
 
         var selection = selectedName?.Text ?? selectedEntity?.GetType().Name ?? "none";
         SplashKit.DrawText(

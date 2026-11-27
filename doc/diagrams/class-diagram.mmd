@@ -78,6 +78,12 @@ classDiagram
     }
     class SplashKitDrawContext
 
+    class Program {
+        -Main() void
+        -HandleInput(...) void
+        -CreateShape(...) DrawableEntity
+    }
+
     DrawableEntity <|-- LineEntity
     DrawableEntity <|-- RectangleEntity
     DrawableEntity <|-- CircleEntity
@@ -91,3 +97,7 @@ classDiagram
     NameGlyphFactory ..> LineEntity : creates glyph strokes
     DrawableEntity ..> IDrawContext : draws through
     SplashKitDrawContext ..|> IDrawContext
+    Program ..> SceneController : sends input actions
+    Program ..> Scene : creates and redraws
+    Program ..> NameGlyphFactory : creates name
+    Program ..> SplashKitDrawContext : creates renderer

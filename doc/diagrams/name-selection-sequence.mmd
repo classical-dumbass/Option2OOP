@@ -1,27 +1,34 @@
 sequenceDiagram
     actor User
-    participant App as SplashKit application
+    participant App as Program
     participant Controller as SceneController
     participant Scene
     participant Name as NameEntity
-    participant Part as RectangleEntity
+    participant Glyph as LineEntity
+    participant Renderer as SplashKitDrawContext
 
-    User->>App: Click canvas position
+    Note over User,Name: The first name has already been added by pressing N.
+    User->>App: Right-click a name stroke at position
+    App->>Scene: FindTopmostAt(position)
+    Scene-->>App: Topmost drawable or none
     App->>Controller: SelectNameAt(position)
     Controller->>Scene: FindTopmostNameAt(position)
     Scene->>Name: Contains(position)
-    Name->>Part: Contains(position)
-    Part-->>Name: hit result
+    Name->>Glyph: Contains(position), for each stroke
+    Glyph-->>Name: Hit result
     Name-->>Scene: hit result
     Scene-->>Controller: NameEntity or none
     Controller-->>App: selection result
-    App-->>User: Show selection state
+    App-->>User: Show selection highlight
 
-    User->>App: Press move/resize/recolor key
-    App->>Controller: Apply action to selected name
-    Controller->>Name: MoveBy / ResizeBy / ChangeColor
-    Name->>Part: Apply operation to child shapes
-    Part-->>Name: Updated part state
-    App->>Scene: Draw(IDrawContext)
+    User->>App: Press left arrow
+    App->>Controller: MoveSelected((-10, 0))
+    Controller->>Name: MoveBy(offset)
+    Name->>Glyph: MoveBy(offset), for each child
+    Glyph-->>Name: Updated position
+    App->>Scene: Draw(context)
     Scene->>Name: Draw(IDrawContext)
-    Name-->>App: Render composite through context
+    Name->>Glyph: Draw(context), for each child
+    Glyph->>Renderer: DrawLine(start, end, color, thickness)
+    Renderer-->>Glyph: Draw complete
+    App->>Renderer: DrawLine(..., gold selection highlight)

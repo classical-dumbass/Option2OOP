@@ -25,9 +25,31 @@ public sealed class RectangleEntity : DrawableEntity
         RotateBy(rotationDegrees);
     }
 
-    public float Width => _width;
+    public float Width
+    {
+        get
+        {
+            return _width;
+        }
+        set
+        {
+            ValidateDimension(value, nameof(value));
+            _width = value;
+        }
+    }
 
-    public float Height => _height;
+    public float Height
+    {
+        get
+        {
+            return _height;
+        }
+        set
+        {
+            ValidateDimension(value, nameof(value));
+            _height = value;
+        }
+    }
 
     public override void Draw(IDrawContext context)
     {

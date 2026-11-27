@@ -72,6 +72,8 @@ public sealed class SplashKitDrawContext : IDrawContext
             (offset.X * sine) + (offset.Y * cosine));
     }
 
-    private static SplashKitSDK.Color ToSplashKitColor(ModelColor color) =>
-        SplashKit.RGBColor(color.R, color.G, color.B);
+    private static SplashKitSDK.Color ToSplashKitColor(ModelColor color)
+    {
+        return SplashKit.RGBColor(color.R, color.G, color.B);
+    }
 }

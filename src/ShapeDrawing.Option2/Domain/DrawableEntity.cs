@@ -17,13 +17,37 @@ public abstract class DrawableEntity
         _color = color;
     }
 
-    public Vector2 Center => _center;
+    public Vector2 Center
+    {
+        get
+        {
+            return _center;
+        }
+    }
 
-    public Color Color => _color;
+    public Color Color
+    {
+        get
+        {
+            return _color;
+        }
+    }
 
-    public float RotationDegrees => _rotationDegrees;
+    public float RotationDegrees
+    {
+        get
+        {
+            return _rotationDegrees;
+        }
+    }
 
-    public float Scale => _scale;
+    public float Scale
+    {
+        get
+        {
+            return _scale;
+        }
+    }
 
     public void MoveBy(Vector2 offset)
     {
@@ -101,6 +125,8 @@ public abstract class DrawableEntity
         return normalized < 0f ? normalized + 360f : normalized;
     }
 
-    private static bool IsFinite(Vector2 value) =>
-        float.IsFinite(value.X) && float.IsFinite(value.Y);
+    private static bool IsFinite(Vector2 value)
+    {
+        return float.IsFinite(value.X) && float.IsFinite(value.Y);
+    }
 }

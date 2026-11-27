@@ -5,6 +5,8 @@ namespace ShapeDrawing.Option2.Domain;
 
 public sealed class NameEntity : CompositeEntity
 {
+    private readonly string _text;
+
     public NameEntity(
         string text,
         Vector2 center,
@@ -24,12 +26,18 @@ public sealed class NameEntity : CompositeEntity
             throw new ArgumentException("A name must contain at least one drawable part.", nameof(glyphParts));
         }
 
-        Text = text;
+        _text = text;
         foreach (var part in parts)
         {
             AddChild(part);
         }
     }
 
-    public string Text { get; }
+    public string Text
+    {
+        get
+        {
+            return _text;
+        }
+    }
 }

@@ -16,14 +16,22 @@ public sealed class Option2ModelTests
 
         controller.AddRandomHouses(640f, 480f);
 
-        Assert.IsTrue(scene.Entities.Count >= 3 && scene.Entities.Count <= 10);
-        Assert.IsTrue(scene.Entities.All(entity => entity is HouseEntity));
+        Assert.IsInRange(3, 10, scene.Entities.Count);
+        Assert.IsNotEmpty(scene.Entities);
+        foreach (var entity in scene.Entities)
+        {
+            Assert.IsInstanceOfType<HouseEntity>(entity);
+        }
         foreach (var house in scene.Entities.Cast<HouseEntity>())
         {
             Assert.AreEqual(1, house.Children.OfType<RectangleEntity>().Count());
             Assert.AreEqual(1, house.Children.OfType<CircleEntity>().Count());
             Assert.AreEqual(2, house.Children.OfType<LineEntity>().Count());
+            Assert.IsInRange(50f, 590f, house.Center.X);
+            Assert.IsInRange(55f, 425f, house.Center.Y);
         }
+
+        Assert.AreNotEqual(scene.Entities[0].Color, scene.Entities[1].Color);
     }
 
     [TestMethod]
@@ -31,7 +39,11 @@ public sealed class Option2ModelTests
     {
         var house = new HouseEntity(new Vector2(100f, 100f), Color.Blue);
         var originalCenter = house.Center;
-        var originalChildCenters = house.Children.Select(child => child.Center).ToArray();
+        var originalChildCenters = new Vector2[house.Children.Count];
+        for (var index = 0; index < house.Children.Count; index++)
+        {
+            originalChildCenters[index] = house.Children[index].Center;
+        }
         var offset = new Vector2(5f, -3f);
 
         house.MoveBy(offset);
@@ -45,7 +57,11 @@ public sealed class Option2ModelTests
             Assert.AreEqual(expected, house.Children[index].Center);
         }
 
-        var centersBeforeRotation = house.Children.Select(child => child.Center).ToArray();
+        var centersBeforeRotation = new Vector2[house.Children.Count];
+        for (var index = 0; index < house.Children.Count; index++)
+        {
+            centersBeforeRotation[index] = house.Children[index].Center;
+        }
         house.RotateBy(90f);
 
         Assert.AreEqual(90f, house.RotationDegrees);
@@ -57,7 +73,10 @@ public sealed class Option2ModelTests
         }
 
         house.ChangeColor(Color.Green);
-        Assert.IsTrue(house.Children.All(child => child.Color == Color.Green));
+        foreach (var child in house.Children)
+        {
+            Assert.AreEqual(Color.Green, child.Color);
+        }
     }
 
     [TestMethod]
@@ -72,9 +91,15 @@ public sealed class Option2ModelTests
         var angle = controller.RotateAll();
         var expectedAngle = ((angle % 360f) + 360f) % 360f;
 
-        Assert.IsTrue(scene.Entities.All(entity => entity.RotationDegrees == expectedAngle));
+        foreach (var entity in scene.Entities)
+        {
+            Assert.AreEqual(expectedAngle, entity.RotationDegrees);
+        }
         var house = (HouseEntity)scene.Entities[2];
-        Assert.IsTrue(house.Children.All(child => child.RotationDegrees == expectedAngle));
+        foreach (var child in house.Children)
+        {
+            Assert.AreEqual(expectedAngle, child.RotationDegrees);
+        }
     }
 
     [TestMethod]
@@ -113,9 +138,70 @@ public sealed class Option2ModelTests
 
         Assert.AreEqual("ABCDEFGHIJKLMNOPQRSTUVWXYZ -", name.Text);
         Assert.IsGreaterThan(100, name.Children.Count);
-        Assert.IsTrue(name.Children.All(part => part is LineEntity && part.Color == Color.Purple));
-        Assert.Throws<ArgumentException>(() =>
-            NameGlyphFactory.Create("A1", Vector2.Zero, Color.Black));
+        foreach (var part in name.Children)
+        {
+            Assert.IsInstanceOfType<LineEntity>(part);
+            Assert.AreEqual(Color.Purple, part.Color);
+        }
+
+        Assert.Throws<ArgumentException>(delegate
+        {
+            NameGlyphFactory.Create("A1", Vector2.Zero, Color.Black);
+        });
+    }
+
+    [TestMethod]
+    public void SceneUndoAndRedo_RestoreAddedAndRemovedEntities()
+    {
+        var scene = new Scene();
+        var entity = new CircleEntity(new Vector2(50f, 50f), 10f, Color.Red);
+
+        scene.Add(entity);
+        Assert.HasCount(1, scene.Entities);
+        Assert.IsTrue(scene.Undo());
+        Assert.IsEmpty(scene.Entities);
+        Assert.IsTrue(scene.Redo());
+        Assert.HasCount(1, scene.Entities);
+
+        Assert.IsTrue(scene.Remove(entity));
+        Assert.IsEmpty(scene.Entities);
+        Assert.IsTrue(scene.Undo());
+        Assert.HasCount(1, scene.Entities);
+        Assert.IsTrue(scene.Redo());
+        Assert.IsEmpty(scene.Entities);
+    }
+
+    [TestMethod]
+    public void SceneUndoAndRedo_RestoreEntityTransforms()
+    {
+        var scene = new Scene();
+        var entity = new RectangleEntity(
+            new Vector2(100f, 100f),
+            40f,
+            30f,
+            Color.Red);
+        scene.Add(entity);
+
+        scene.MoveEntity(entity, new Vector2(10f, 5f));
+        Assert.AreEqual(new Vector2(110f, 105f), entity.Center);
+        Assert.IsTrue(scene.Undo());
+        Assert.AreEqual(new Vector2(100f, 100f), entity.Center);
+        Assert.IsTrue(scene.Redo());
+        Assert.AreEqual(new Vector2(110f, 105f), entity.Center);
+
+        scene.ResizeEntity(entity, 2f);
+        Assert.AreEqual(80f, entity.Width);
+        Assert.IsTrue(scene.Undo());
+        Assert.AreEqual(40f, entity.Width);
+        Assert.IsTrue(scene.Redo());
+        Assert.AreEqual(80f, entity.Width);
+
+        scene.RecolorEntity(entity, Color.Blue);
+        Assert.AreEqual(Color.Blue, entity.Color);
+        Assert.IsTrue(scene.Undo());
+        Assert.AreEqual(Color.Red, entity.Color);
+        Assert.IsTrue(scene.Redo());
+        Assert.AreEqual(Color.Blue, entity.Color);
     }
 
     private static Vector2 RotatePoint(Vector2 point, Vector2 origin, float degrees)

@@ -14,7 +14,18 @@ public sealed class CircleEntity : DrawableEntity
         _radius = radius;
     }
 
-    public float Radius => _radius;
+    public float Radius
+    {
+        get
+        {
+            return _radius;
+        }
+        set
+        {
+            ValidateRadius(value);
+            _radius = value;
+        }
+    }
 
     public override void Draw(IDrawContext context)
     {
@@ -22,8 +33,10 @@ public sealed class CircleEntity : DrawableEntity
         context.DrawCircle(Center, _radius, Color);
     }
 
-    public override bool Contains(Vector2 point) =>
-        Vector2.DistanceSquared(Center, point) <= _radius * _radius;
+    public override bool Contains(Vector2 point)
+    {
+        return Vector2.DistanceSquared(Center, point) <= _radius * _radius;
+    }
 
     protected override void OnResized(float factor)
     {
